@@ -38,7 +38,7 @@ func main() {
 
 	// Open the log file while we still have the original uid/capabilities,
 	// so the file descriptor survives the privilege drop below.
-	l, err := logger.New(cfg.Logging.Path)
+	l, err := logger.New(cfg.Logging)
 	if err != nil {
 		sl.Error("cannot open log", "path", cfg.Logging.Path, "err", err)
 		os.Exit(1)

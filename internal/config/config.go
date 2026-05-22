@@ -27,6 +27,7 @@ type Server struct {
 	Listen           string   `toml:"listen"`
 	Banner           string   `toml:"banner"`
 	OutputText       string   `toml:"output_text"`
+	OutputTextPath   string   `toml:"output_text_path"`
 	HandshakeTimeout Duration `toml:"handshake_timeout"`
 	MaxConnections   uint32   `toml:"max_connections"`
 	// How long to wait for a shell request after accepting a session channel.
@@ -35,19 +36,14 @@ type Server struct {
 	PreOutputDelay Duration `toml:"pre_output_delay"`
 	// Time to wait after writing output before closing the session.
 	PostOutputDelay Duration `toml:"post_output_delay"`
-	bannerTemplate  *template.Template
 	outputTemplate  *template.Template
 }
 
 func (s Server) RenderBanner() (string, error) {
-	if s.bannerTemplate == nil {
-		tmpl, err := parseTextTemplate(s.Banner)
-		if err != nil {
-			return "", err
-		}
-		return renderTemplate(tmpl)
+	if s.Banner == "" {
+		return "", fmt.Errorf("server.banner must not be empty")
 	}
-	return renderTemplate(s.bannerTemplate)
+	return s.Banner, nil
 }
 
 func (s Server) RenderOutputText() (string, error) {
@@ -67,7 +63,9 @@ func (s Server) RenderOutputText() (string, error) {
 }
 
 type Logging struct {
-	Path string `toml:"path"`
+	Path          string `toml:"path"`
+	SecretsMode   string `toml:"secrets_mode"`
+	SecretsPubKey string `toml:"secrets_pubkey"`
 }
 
 type RateLimit struct {
@@ -161,6 +159,16 @@ func validate(c *Config) error {
 	if c.Server.Listen == "" {
 		return fmt.Errorf("server.listen must not be empty")
 	}
+	if c.Server.Banner == "" {
+		return fmt.Errorf("server.banner must not be empty")
+	}
+	if c.Server.OutputTextPath != "" {
+		outputText, err := readTextFile(c.Server.OutputTextPath)
+		if err != nil {
+			return fmt.Errorf("read server.output_text_path %q: %w", c.Server.OutputTextPath, err)
+		}
+		c.Server.OutputText = outputText
+	}
 	if c.Server.OutputText == "" {
 		return fmt.Errorf("server.output_text must not be empty")
 	}
@@ -181,6 +189,18 @@ func validate(c *Config) error {
 	}
 	if c.Logging.Path == "" {
 		return fmt.Errorf("logging.path must not be empty")
+	}
+	c.Logging.SecretsMode = strings.ToLower(strings.TrimSpace(c.Logging.SecretsMode))
+	switch c.Logging.SecretsMode {
+	case "":
+		c.Logging.SecretsMode = "plain"
+	case "plain", "hash", "none":
+	case "enc_x25519_aes256gcm", "enc_x25519_chacha20poly1305":
+		if c.Logging.SecretsPubKey == "" {
+			return fmt.Errorf("logging.secrets_pubkey must not be empty when logging.secrets_mode=%q", c.Logging.SecretsMode)
+		}
+	default:
+		return fmt.Errorf("logging.secrets_mode must be one of plain, hash, none, enc_x25519_aes256gcm, enc_x25519_chacha20poly1305")
 	}
 	if c.RateLimit.BucketCount == 0 {
 		return fmt.Errorf("ratelimit.bucket_count must be greater than 0")
@@ -210,19 +230,21 @@ func renderTemplate(tmpl *template.Template) (string, error) {
 }
 
 func (s *Server) compileTemplates() error {
-	bannerTemplate, err := parseTextTemplate(s.Banner)
-	if err != nil {
-		return fmt.Errorf("server.banner: %w", err)
-	}
-
 	outputTemplate, err := parseTextTemplate(s.OutputText)
 	if err != nil {
 		return fmt.Errorf("server.output_text: %w", err)
 	}
 
-	s.bannerTemplate = bannerTemplate
 	s.outputTemplate = outputTemplate
 	return nil
+}
+
+func readTextFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimRight(string(data), "\r\n"), nil
 }
 
 func textTemplateFuncs() template.FuncMap {

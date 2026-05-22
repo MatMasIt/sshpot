@@ -14,6 +14,8 @@ This project is not trying to punish every internet scan. Scanning for research,
 
 However, (my) red line is active login attempts. If a host tries to authenticate against the honeypot, we can ban it for a while and report it to AbuseIPDB.
 
+If you enable encrypted password logging, there is also a separate client-side utility that can recover the plaintext CSV later from the private key and the captured log.
+
 ## Why this project
 
 This is not a full fledged honeypot with a fake filesystem, interactive shell, or multiple auth methods. There exist plenty already. It is a simple SSH server that logs auth attempts and disconnects (this was the scope).
@@ -29,7 +31,7 @@ This is not a full fledged honeypot with a fake filesystem, interactive shell, o
    - performs SSH handshake,
    - accepts password auth,
    - logs attempt (`ip`, `username`, `password`, client version),
-   - shows a fake shell banner/MOTD,
+   - shows a fake shell banner/MOTD loaded from a separate file,
    - closes the channel.
 
    (timeouts and delays are configurable to make it more or less responsive)
@@ -78,6 +80,9 @@ Important keys:
 - `[server].pre_output_delay` (duration with unit)
 - `[server].post_output_delay` (duration with unit)
 - `[logging].path` (example: `/var/log/sshpot/logins.csv`)
+- `[logging].secrets_mode` (see below)
+- `[logging].secrets_pubkey` (required for encrypted modes)
+- `[server].output_text_path` (path to the templated MOTD/output file)
 - `[ratelimit].bucket_count`
 - `[ratelimit].rest_interval` (duration with unit)
 - `[process].user`, `[process].group`
@@ -85,7 +90,8 @@ Important keys:
 All durations must be specified as strings with units (`500ms`, `2s`, `10m`, ...).
 
 ## Templates
-In the config file, the `output_text` and `banner` fields support Go `text/template` syntax.
+In the config file, the `banner` field stays inline.
+The `output_text` template is read from `[server].output_text_path` before the process drops privileges.
 
 Available helper functions:
 
@@ -100,9 +106,29 @@ Available helper functions:
 
 This is used to make the fake shell banner and output more dynamic and less identical across sessions, which can help against simple bot heuristics. and can allow some artistry in the fake output if desired.
 
-## Operational notes
 
-**Treat captured credentials as sensitive data**: (credential stuffing often uses real leaked credentials, and some bots might be testing them against your real SSH service if it is on a common port).
+## Captured credentials
+
+<a name="password-secrets-modes"></a>
+
+The `secrets_mode` option controls whether passwords are stored in plaintext, hashed, encrypted, or omitted entirely.
+See [docs/password-secrets.md](docs/password-secrets.md).
+
+## CSV decryptor
+
+Build the utility with:
+
+```bash
+make build-unseal
+```
+
+Use it to recover plaintext passwords from a captured CSV:
+
+```bash
+./sshpot-unseal -key recipient.key -in logins.csv -out logins.decrypted.csv
+```
+
+The utility preserves the CSV columns and only replaces the password field for encrypted rows.
 
 ## License
 

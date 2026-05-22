@@ -1,4 +1,3 @@
 ./sshpot
-*.csv
 *.log
-config.test.toml
+test

@@ -1,0 +1,15 @@
+Welcome to Ubuntu 9.10 (GNU/Linux 2.6.31-14-server x86_64)
+
+ * Documentation:  https://help.ubuntu.com/
+
+  System information as of {{ nowUTC }}
+
+  System load:  {{ printf "%.2f" (randFloat 0.00 1.20) }} {{ printf "%.2f" (randFloat 0.00 0.90) }} {{ printf "%.2f" (randFloat 0.00 0.60) }}     Processes:           {{ randInt 72 110 }}
+  Usage of /:   {{ printf "%.1f%%" (randFloat 18 84) }} of {{ diskSize 8.00 160.00 }}  Users logged in:     {{ randInt 0 3 }}
+  Memory usage: {{ printf "%.0f%%" (randFloat 10 42) }}                IP address for eth0: {{ randIP "10.0.0.x" }}
+
+Last login: {{ randDate "2009-10-29" "2018-11-01" }} from {{ randIP "192.168.1.x" }}
+{{ if chance 25 }}
+You have new mail.
+{{ end }}
+This account is currently not available.

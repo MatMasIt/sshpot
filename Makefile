@@ -5,12 +5,15 @@ DESTDIR  :=
 
 BUILD_FLAGS := -trimpath -ldflags="-s -w"
 
-.PHONY: all build install uninstall lint test clean
+.PHONY: all build build-unseal install uninstall lint test clean
 
 all: build
 
 build:
 	CGO_ENABLED=0 go build $(BUILD_FLAGS) -o $(BINARY) $(CMD)
+
+build-unseal:
+	CGO_ENABLED=0 go build $(BUILD_FLAGS) -o sshpot-unseal ./cmd/sshpot-unseal
 
 install: build
 	install -m 755 $(BINARY) $(DESTDIR)$(PREFIX)/bin/$(BINARY)
@@ -29,6 +32,7 @@ install: build
 	install -d -m 755 $(DESTDIR)/etc/fail2ban/jail.d
 	install -d -m 755 $(DESTDIR)/etc/fail2ban/action.d
 	install -d -m 755 $(DESTDIR)/etc/logrotate.d
+	install -d -m 755 $(DESTDIR)/etc/sshpot
 	install -d -m 750 -o sshpot -g sshpot $(DESTDIR)/var/log/sshpot
 	install -m 640 /dev/null $(DESTDIR)/var/log/sshpot/logins.csv
 	chown sshpot:sshpot $(DESTDIR)/var/log/sshpot/logins.csv
@@ -38,6 +42,12 @@ install: build
 		echo "Installed default config to $(DESTDIR)/etc/sshpot/config.toml"; \
 	else \
 		echo "Config already exists, skipping ($(DESTDIR)/etc/sshpot/config.toml)"; \
+	fi
+	@if [ ! -f $(DESTDIR)/etc/sshpot/output_text.txt ]; then \
+		install -m 644 configs/output_text.txt $(DESTDIR)/etc/sshpot/output_text.txt; \
+		echo "Installed output text to $(DESTDIR)/etc/sshpot/output_text.txt"; \
+	else \
+		echo "Output text already exists, skipping ($(DESTDIR)/etc/sshpot/output_text.txt)"; \
 	fi
 	install -m 644 contrib/fail2ban/filter.d/sshpot.conf $(DESTDIR)/etc/fail2ban/filter.d/sshpot.conf
 	install -m 644 sshpot.service $(DESTDIR)/etc/systemd/system/sshpot.service
@@ -73,6 +83,7 @@ uninstall:
 	rm -f $(DESTDIR)/etc/fail2ban/action.d/abuseipdb.conf
 	rm -f $(DESTDIR)/var/log/sshpot/logins.csv
 	rm -f $(DESTDIR)/etc/logrotate.d/sshpot
+	rm -f $(DESTDIR)/etc/sshpot/output_text.txt
 
 lint:
 	go vet ./...
