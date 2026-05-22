@@ -199,8 +199,6 @@ func (s *Server) onPassword(meta ssh.ConnMetadata, password []byte) (*ssh.Permis
 
 	s.slog.Info("login attempt",
 		"ip", ip,
-		"user", meta.User(),
-		"pass", string(password),
 		"client", string(meta.ClientVersion()),
 	)
 
