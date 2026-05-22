@@ -1,10 +1,10 @@
 module github.com/matmasit/sshpot
 
-go 1.22
+go 1.25.0
 
 require (
-	github.com/BurntSushi/toml v1.3.2
-	golang.org/x/crypto v0.23.0
+	github.com/BurntSushi/toml v1.6.0
+	golang.org/x/crypto v0.52.0
 )
 
-require golang.org/x/sys v0.20.0 // indirect
+require golang.org/x/sys v0.45.0 // indirect
