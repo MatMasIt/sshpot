@@ -28,6 +28,7 @@ type Server struct {
 	Banner           string   `toml:"banner"`
 	OutputText       string   `toml:"output_text"`
 	HandshakeTimeout Duration `toml:"handshake_timeout"`
+	MaxConnections   uint32   `toml:"max_connections"`
 	// How long to wait for a shell request after accepting a session channel.
 	ShellRequestTimeout Duration `toml:"shell_request_timeout"`
 	// Small pause before writing output to the client (e.g. terminal render delay).

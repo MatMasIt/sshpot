@@ -30,11 +30,12 @@ type Server struct {
 	gate *ratelimit.Gate
 	log  *logger.Logger
 	slog *slog.Logger
+	sem  chan struct{}
 }
 
 // New constructs a Server from the supplied dependencies.
 func New(cfg *config.Config, gate *ratelimit.Gate, l *logger.Logger, sl *slog.Logger) *Server {
-	return &Server{cfg: cfg, gate: gate, log: l, slog: sl}
+	return &Server{cfg: cfg, gate: gate, log: l, slog: sl, sem: make(chan struct{}, cfg.Server.MaxConnections)}
 }
 
 // Listen binds the configured address and returns a ready listener.
@@ -67,7 +68,19 @@ func (s *Server) Serve(ln net.Listener) error {
 			return fmt.Errorf("accept: %w", err)
 		}
 		s.slog.Info("new connection", "remote", conn.RemoteAddr())
-		go s.handle(conn)
+		select {
+		// if there is room in the semaphore, accept the connection and handle it in a new goroutine.
+		case s.sem <- struct{}{}:
+			go func() {
+				// Release the semaphore when the connection is done being handled.
+				defer func() { <-s.sem }()
+				s.handle(conn)
+			}()
+		default:
+			// If the semaphore is full, refuse the connection immediately.
+			s.slog.Debug("max connections reached, refusing new connection", "remote", conn.RemoteAddr())
+			conn.Close()
+		}
 	}
 }
 

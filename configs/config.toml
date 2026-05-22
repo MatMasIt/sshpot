@@ -6,6 +6,9 @@
 # Port 22 requires CAP_NET_BIND_SERVICE (granted by the systemd unit).
 listen = "0.0.0.0:22"
 
+# How many connections in-flight to allow before refusing new ones.
+max_connections = 100
+
 # SSH banner presented to clients.
 # Mimics Ubuntu 9.10 (Karmic Koala) / OpenSSH 5.1p1.
 banner = "SSH-2.0-OpenSSH_5.1p1 Ubuntu-6ubuntu2"
