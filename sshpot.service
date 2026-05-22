@@ -1,0 +1,65 @@
+[Unit]
+Description=SSH Honeypot
+Documentation=https://github.com/matmasit/sshpot
+After=network.target
+RequiresMountsFor=/var/log/sshpot
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/sshpot -config /etc/sshpot/config.toml
+User=root
+Group=root
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sshpot
+
+Restart=on-failure
+RestartSec=5s
+
+#  Privilege model 
+#
+# We start as root so the binary can:
+#   1. Open the log file descriptor
+#   2. Bind port 22  (requires CAP_NET_BIND_SERVICE)
+#
+# The binary then calls Setgid/Setuid internally (see config [process])
+# to drop to the dedicated sshpot user before the first Accept().
+#
+# CAP_NET_BIND_SERVICE is granted via AmbientCapabilities so it survives
+# the exec.  After binding the port the binary drops it along with all
+# other capabilities via the Setuid call (Linux semantics: Setuid to
+# non-root clears all capabilities).
+
+# Grant the capabilities needed to bind a port below 1024, open the
+# pre-created log file, and perform the in-process privilege drop.
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID CAP_DAC_OVERRIDE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID CAP_DAC_OVERRIDE
+
+# After the in-process privilege drop, no capabilities remain and no new
+# ones can be acquired.
+NoNewPrivileges=true
+
+#  Filesystem isolation 
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=/var/log/sshpot
+
+#  Network isolation 
+RestrictAddressFamilies=AF_INET AF_INET6
+
+#  Kernel hardening 
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectClock=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target
