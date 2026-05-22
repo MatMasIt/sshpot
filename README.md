@@ -25,6 +25,7 @@ This is not a full fledged honeypot with a fake filesystem, interactive shell, o
 2. Binds the listening socket.
 3. Drops privileges to the configured user/group.
 4. For each connection:
+   - generates a fresh Ed25519 host key specific to that session
    - performs SSH handshake,
    - accepts password auth,
    - logs attempt (`ip`, `username`, `password`, client version),
