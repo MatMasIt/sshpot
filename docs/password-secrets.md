@@ -120,7 +120,7 @@ openssl genpkey -algorithm x25519 -out recipient.key
 openssl pkey -in recipient.key -pubout -out recipient.pub
 ```
 
-Store the private key offline. The honeypot host needs only the public key.
+Store the private key offline. The honeypot host needs only the public key (and indeed should not have access to the private key).
 
 ---
 
