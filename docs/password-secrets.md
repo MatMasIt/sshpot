@@ -92,28 +92,18 @@ ciphertext_with_tag = AES-256-GCM-Encrypt(key, iv, plaintext)
 
 ```
 password_field = base64( ephemeral_pub || ciphertext_with_tag )
-# 32 + 117 = 149 bytes binary → 200 characters base64
+# 32 + 117 = 149 bytes binary
 ```
 
 ### `enc_x25519_chacha20poly1305`
 
-Same key agreement and HKDF derivation as `enc_x25519_aes256gcm`.
-Differs in the cipher used and does not apply length-hiding padding.
+Same key agreement and HKDF derivation as `enc_x25519_aes256gcm`. The plaintext preparation is the same as well. The only difference is the cipher used for authenticated encryption.
 
 **Encryption**
 
 ```
 ciphertext_with_tag = ChaCha20-Poly1305-Encrypt(key, iv, password)
 ```
-
-**Storage format**
-
-```
-password_field = base64( ephemeral_pub || ciphertext_with_tag )
-```
-
-Prefer AES-256-GCM on hardware with AES-NI; prefer ChaCha20-Poly1305
-on hardware without it (most ARM, older x86).
 
 ---
 
