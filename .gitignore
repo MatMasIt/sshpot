@@ -1,3 +1,5 @@
 ./sshpot
 *.log
 test
+sshpot
+sshpot-unseal
